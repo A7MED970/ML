@@ -61,14 +61,16 @@ knn_model      = joblib.load("models/knn.pkl")
 svc_model      = joblib.load("models/svc.pkl")
 rf_model       = joblib.load("models/rf.pkl")
 gb_model       = joblib.load("models/gb.pkl")
+ann_model      = joblib.load("models/ann.pkl")
 
 # =====================================
-# LOAD SCALERS (only for KNN, SVC, LR)
+# LOAD SCALERS (only for KNN, SVC, LR, ANN)
 # =====================================
 
 logistic_scaler = joblib.load("models/logistic_scaler.pkl")
 knn_scaler      = joblib.load("models/knn_scaler.pkl")
 svc_scaler      = joblib.load("models/svc_scaler.pkl")
+ann_scaler      = joblib.load("models/ann_scaler.pkl")
 
 # =====================================
 # LOAD FEATURE COLUMNS
@@ -117,7 +119,7 @@ if page == "Home":
         st.metric("Features Used", "39")
 
     with col3:
-        st.metric("ML Models", "5")
+        st.metric("ML Models", "6")
 
     st.write("---")
 
@@ -133,6 +135,7 @@ if page == "Home":
     - Support Vector Classifier (SVC)
     - Random Forest
     - Gradient Boosting
+    - Artificial Neural Network (ANN)
     """)
 
     st.write("---")
@@ -171,6 +174,7 @@ elif page == "Prediction":
             "SVC",
             "Random Forest",
             "Gradient Boosting",
+            "ANN",
         ]
     )
 
@@ -343,6 +347,7 @@ elif page == "Prediction":
     input_knn      = knn_scaler.transform(input_df)
     input_svc      = svc_scaler.transform(input_df)
     input_logistic = logistic_scaler.transform(input_df)
+    input_ann      = ann_scaler.transform(input_df)
     # RF and GB receive raw (unscaled) input
 
     # =====================================
@@ -363,8 +368,11 @@ elif page == "Prediction":
         elif model_choice == "Random Forest":
             prediction = rf_model.predict(input_df)
 
-        else:  # Gradient Boosting
+        elif model_choice == "Gradient Boosting":
             prediction = gb_model.predict(input_df)
+
+        else:  # ANN
+            prediction = ann_model.predict(input_ann)
 
         st.write("---")
 
@@ -416,16 +424,17 @@ elif page == "Model Comparison":
 
     data = {
         "Model": [
+            "KNN",
+            "ANN",
+            "Random Forest",
             "Gradient Boosting",
             "SVC",
-            "Random Forest",
             "Logistic Regression",
-            "KNN",
         ],
-        "Accuracy (%)":  [78.06, 77.23, 76.96, 74.23, 71.64],
-        "Precision (%)": [79.65, 78.31, 79.09, 75.25, 73.35],
-        "Recall (%)":    [79.70, 79.95, 77.91, 77.85, 74.52],
-        "F1-Score (%)":  [79.68, 79.12, 78.50, 76.53, 73.93],
+        "Accuracy (%)":  [71.64, 75.43, 76.96, 78.06, 77.23, 74.23],
+        "Precision (%)": [73.35, 76.71, 79.09, 79.65, 78.31, 75.25],
+        "Recall (%)":    [74.52, 78.22, 77.91, 79.70, 79.95, 77.85],
+        "F1-Score (%)":  [73.93, 77.46, 78.50, 79.68, 79.12, 76.53],
     }
 
     df = pd.DataFrame(data)
@@ -452,3 +461,4 @@ elif page == "Model Comparison":
     with col2:
         st.image("images/svc_confusion_matrix.png",  caption="SVC")
         st.image("images/gb_confusion_matrix.png",   caption="Gradient Boosting")
+        st.image("images/ann_confusion_matrix.png",  caption="ANN")

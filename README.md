@@ -4,7 +4,7 @@ A machine learning system that classifies NBA player-seasons as
 **good free-throw shooters** (FT% >= 75%) or **below-average free-throw shooters** (FT% < 75%).
 The project uses per-game statistics scraped from Basketball Reference (1975-2025),
 applies careful preprocessing to remove data leakage, engineers ratio features,
-adds historical free-throw features from prior seasons, and trains five classifiers.
+adds historical free-throw features from prior seasons, and trains six classifiers.
 An interactive Streamlit dashboard allows real-time prediction for any custom player profile.
 
 ---
@@ -96,7 +96,8 @@ NBA Free Throw Predictor/
 |   |-- 05_random_forest.ipynb      # Random Forest
 |   |-- 06_svc.ipynb                # Support Vector Classifier
 |   |-- 07_logistic_regression.ipynb
-|   |-- 08_model_comparison.ipynb   # Unified evaluation across all 5 models
+|   |-- 08_ann.ipynb                # Artificial Neural Network
+|   |-- 09_model_comparison.ipynb   # Unified evaluation across all 6 models
 |
 |-- models/
 |   |-- feature_columns.pkl         # Exact ordered feature list used in training
@@ -105,6 +106,7 @@ NBA Free Throw Predictor/
 |   |-- logistic.pkl, logistic_scaler.pkl
 |   |-- rf.pkl
 |   |-- gb.pkl
+|   |-- ann.pkl, ann_scaler.pkl
 |
 |-- images/
 |   |-- *_confusion_matrix.png      # One per model
@@ -135,13 +137,14 @@ Features actually used (39 total):
 
 ## Machine Learning Models
 
-| Model               | Requires Scaling |
-|---------------------|-----------------|
-| KNN                 | Yes             |
-| SVC                 | Yes             |
-| Logistic Regression | Yes             |
-| Random Forest       | No              |
-| Gradient Boosting   | No              |
+| Model                      | Requires Scaling |
+|----------------------------|-----------------|
+| KNN                        | Yes             |
+| SVC                        | Yes             |
+| Logistic Regression        | Yes             |
+| Random Forest              | No              |
+| Gradient Boosting          | No              |
+| Artificial Neural Network  | Yes             |
 
 All models use plain default-style constructors with fixed settings.
 No sklearn Pipeline objects are used - all steps are procedural.
@@ -153,19 +156,19 @@ No sklearn Pipeline objects are used - all steps are procedural.
 All numbers below are on the held-out test set (20% of data, random_state=42).
 FT, FTA, and FT% are fully removed from all feature sets.
 
-| Model               | Accuracy | Precision | Recall  | F1-Score |
-|---------------------|----------|-----------|---------|----------|
-| Gradient Boosting   | 78.06%   | 79.65%    | 79.70%  | 79.68%   |
-| SVC                 | 77.23%   | 78.31%    | 79.95%  | 79.12%   |
-| Random Forest       | 76.96%   | 79.09%    | 77.91%  | 78.50%   |
-| Logistic Regression | 74.23%   | 75.25%    | 77.85%  | 76.53%   |
-| KNN                 | 71.64%   | 73.35%    | 74.52%  | 73.93%   |
+| Model                     | Accuracy | Precision | Recall  | F1-Score |
+|---------------------------|----------|-----------|---------|----------|
+| KNN                       | 88.42%   | 63.35%    | 30.33%  | 41.02%   |
+| ANN                       | 87.05%   | 51.21%    | 52.88%  | 52.03%   |
+| Random Forest             | 57.32%   | 22.35%    | 89.47%  | 35.77%   |
+| Gradient Boosting         | 56.89%   | 22.38%    | 90.98%  | 35.92%   |
+| SVC                       | 55.86%   | 21.99%    | 91.23%  | 35.44%   |
+| Logistic Regression       | 54.59%   | 21.23%    | 89.22%  | 34.30%   |
 
-The 71-78% accuracy range reflects what machine learning can achieve when
-classifying all player-seasons with no exclusions. The strongest predictor
-is a player's past free-throw record (career_ft_pct, prev_ft_pct): free-throw
-shooting is a stable individual skill, and prior seasons are the best available
-signal for the current season. Gradient Boosting leads at 78.06% accuracy.
+KNN leads at 88.42% accuracy, with ANN close behind at 87.05%. The strongest
+predictor is a player's past free-throw record (career_ft_pct, prev_ft_pct):
+free-throw shooting is a stable individual skill, and prior seasons are the best
+available signal for the current season.
 
 ---
 
@@ -177,7 +180,7 @@ signal for the current season. Gradient Boosting leads at 78.06% accuracy.
 pip install -r requirements.txt
 ```
 
-2. Run notebooks in order (01 to 08). Skip the scraping cell in notebook 01
+2. Run notebooks in order (01 to 09). Skip the scraping cell in notebook 01
    if `combined.csv` already exists. The bio-scraping cell in notebook 01
    takes a few minutes and requires an internet connection:
 

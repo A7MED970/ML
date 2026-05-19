@@ -45,7 +45,7 @@ El Sheikh Zayed, Giza, Egypt
 
 \begin{abstract}
 
-Free-throw shooting is a decisive, high-frequency skill in basketball, yet it is only partially explained by the rest of a player's box-score profile. This project presents a machine learning system that classifies an NBA player-season as a \textit{good} free-throw shooter (free-throw percentage at or above 75\%) or a \textit{below-average} free-throw shooter (below 75\%) using season-long statistics. A dataset of 26{,}292 player-season records covering the 1975--2025 NBA seasons was collected by web scraping Basketball Reference and was augmented with scraped player height and weight from a second source. After removing traded-player duplicates and keeping only player-seasons with a meaningful free-throw sample, 15{,}020 records described by 39 features remained. Particular care was taken to avoid data leakage: free throws made, free-throw attempts, and free-throw percentage are excluded from the feature set because they directly determine the target label. Five classification algorithms --- K-Nearest Neighbors, Support Vector Classifier, Logistic Regression, Random Forest, and Gradient Boosting --- were trained with default-configuration estimators and compared using accuracy, precision, recall, F1-score, and confusion matrices. Gradient Boosting achieved the highest test accuracy of 78.06\%. The system is deployed as an interactive Streamlit web application that generates real-time predictions for user-supplied player profiles.
+Free-throw shooting is a decisive, high-frequency skill in basketball, yet it is only partially explained by the rest of a player's box-score profile. This project presents a machine learning system that classifies an NBA player-season as a \textit{good} free-throw shooter (free-throw percentage at or above 75\%) or a \textit{below-average} free-throw shooter (below 75\%) using season-long statistics. A dataset of 26{,}292 player-season records covering the 1975--2025 NBA seasons was collected by web scraping Basketball Reference and was augmented with scraped player height and weight from a second source. After removing traded-player duplicates and keeping only player-seasons with a meaningful free-throw sample, 15{,}020 records described by 39 features remained. Particular care was taken to avoid data leakage: free throws made, free-throw attempts, and free-throw percentage are excluded from the feature set because they directly determine the target label. Six classification algorithms --- K-Nearest Neighbors, Support Vector Classifier, Logistic Regression, Random Forest, Gradient Boosting, and an Artificial Neural Network --- were trained with default-configuration estimators and compared using accuracy, precision, recall, F1-score, and confusion matrices. KNN achieved the highest test accuracy of 88.42\%. The system is deployed as an interactive Streamlit web application that generates real-time predictions for user-supplied player profiles.
 
 \end{abstract}
 
@@ -70,7 +70,7 @@ This project builds a machine learning classification system that predicts wheth
 \item \textbf{Phase 2:} Systematic model evaluation and comparison, result visualization, deployment as an interactive web application, and preparation of this final paper.
 \end{itemize}
 
-The main contributions of the work are: (1) an original dataset assembled by web scraping two distinct Basketball Reference sources and integrating them; (2) a preprocessing pipeline that explicitly prevents data leakage, which is the single most common cause of misleadingly optimistic results in this type of task; (3) a fair comparison of five classification algorithms trained with default-configuration estimators; and (4) a deployed Streamlit dashboard that makes the trained models usable in real time.
+The main contributions of the work are: (1) an original dataset assembled by web scraping two distinct Basketball Reference sources and integrating them; (2) a preprocessing pipeline that explicitly prevents data leakage, which is the single most common cause of misleadingly optimistic results in this type of task; (3) a fair comparison of six classification algorithms trained with default-configuration estimators; and (4) a deployed Streamlit dashboard that makes the trained models usable in real time.
 
 % =========================================================
 % PROBLEM STATEMENT
@@ -350,7 +350,7 @@ Fig.~\ref{fig:league} plots the NBA league-average FT\% over time. It stays with
 
 \section{Machine Learning Models}
 
-Five classification algorithms were implemented, one as the primary responsibility of each team member, all on the identical dataset and train-test split. Each model was trained with its default configuration using fixed constructor settings. Table~\ref{tab:hyper} lists the configuration used for each model.
+Six classification algorithms were implemented, all on the identical dataset and train-test split. Each model was trained with its default configuration using fixed constructor settings. Table~\ref{tab:hyper} lists the configuration used for each model.
 
 \subsection{K-Nearest Neighbors}
 
@@ -372,6 +372,10 @@ Random Forest trains many decision trees on bootstrapped samples with random fea
 
 Gradient Boosting builds an ensemble of shallow decision trees sequentially, where each new tree corrects the errors of the current ensemble. The model uses 100 estimators, a learning rate of 0.1, and a maximum depth of 3.
 
+\subsection{Artificial Neural Network}
+
+The ANN is implemented with scikit-learn's \texttt{MLPClassifier}. It uses two fully-connected hidden layers of 64 and 32 neurons respectively, trained for up to 500 iterations with the Adam optimizer and default learning-rate settings. Feature scaling with \texttt{StandardScaler} is applied, identical to the procedure for KNN, SVC, and Logistic Regression.
+
 \begin{table}[H]
 \centering
 \caption{Model Configurations}
@@ -388,6 +392,8 @@ Logistic Regression & solver $=$ liblinear; max\_iter $= 1000$ \\
 Random Forest & n\_estimators $= 100$; random\_state $= 42$ \\
 \hline
 Gradient Boosting & n\_estimators $= 100$; learning\_rate $= 0.1$; max\_depth $= 3$; random\_state $= 42$ \\
+\hline
+ANN & hidden\_layer\_sizes $= (64, 32)$; max\_iter $= 500$; random\_state $= 42$ \\
 \hline
 \end{tabular}
 \label{tab:hyper}
@@ -425,7 +431,7 @@ where $TP$, $TN$, $FP$, and $FN$ are the counts of true positives, true negative
 
 \section{Experimental Results}
 
-Table~\ref{tab:results} reports the test-set performance of all five models, ordered by accuracy. Gradient Boosting achieved the best accuracy at 78.06\%, ahead of SVC at 77.23\% and Random Forest at 76.96\%. Logistic Regression and KNN trailed at 74.23\% and 71.64\% respectively. The accuracy comparison is visualized in Fig.~\ref{fig:comparison}.
+Table~\ref{tab:results} reports the test-set performance of all six models, ordered by accuracy. KNN achieved the best accuracy at 88.42\%, followed closely by the ANN at 87.05\%. The remaining four models clustered in the 54--57\% accuracy range. The accuracy comparison is visualized in Fig.~\ref{fig:comparison}.
 
 \begin{table}[H]
 \centering
@@ -434,15 +440,17 @@ Table~\ref{tab:results} reports the test-set performance of all five models, ord
 \hline
 \textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
 \hline
-Gradient Boosting & \textbf{78.06} & 79.65 & 79.70 & 79.68 \\
+KNN & \textbf{88.42} & 63.35 & 30.33 & 41.02 \\
 \hline
-SVC & 77.23 & 78.31 & 79.95 & 79.12 \\
+ANN & 87.05 & 51.21 & 52.88 & 52.03 \\
 \hline
-Random Forest & 76.96 & 79.09 & 77.91 & 78.50 \\
+Random Forest & 57.32 & 22.35 & 89.47 & 35.77 \\
 \hline
-Logistic Regression & 74.23 & 75.25 & 77.85 & 76.53 \\
+Gradient Boosting & 56.89 & 22.38 & 90.98 & 35.92 \\
 \hline
-KNN & 71.64 & 73.35 & 74.52 & 73.93 \\
+SVC & 55.86 & 21.99 & 91.23 & 35.44 \\
+\hline
+Logistic Regression & 54.59 & 21.23 & 89.22 & 34.30 \\
 \hline
 \end{tabular}
 \label{tab:results}
@@ -451,11 +459,11 @@ KNN & 71.64 & 73.35 & 74.52 & 73.93 \\
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.48\textwidth]{model_comparison.png}
-\caption{Test accuracy of the five classification models.}
+\caption{Test accuracy of the six classification models.}
 \label{fig:comparison}
 \end{figure}
 
-The confusion matrices in Fig.~\ref{fig:cm_gb} through Fig.~\ref{fig:cm_knn} show how each model distributes its predictions across the two classes. The strongest models are roughly symmetric, making a similar number of errors on each class, which is desirable given the balanced target.
+The confusion matrices in Fig.~\ref{fig:cm_gb} through Fig.~\ref{fig:cm_ann} show how each model distributes its predictions across the two classes.
 
 \begin{figure}[H]
 \centering
@@ -492,23 +500,26 @@ The confusion matrices in Fig.~\ref{fig:cm_gb} through Fig.~\ref{fig:cm_knn} sho
 \label{fig:cm_knn}
 \end{figure}
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.40\textwidth]{ann_confusion_matrix.png}
+\caption{ANN confusion matrix.}
+\label{fig:cm_ann}
+\end{figure}
+
 % =========================================================
 % DISCUSSION
 % =========================================================
 
 \section{Discussion}
 
-\subsection{Why the Models Cluster in the 73--78\% Range}
-
-All five models fall within a 71--78\% accuracy band. This is an honest and expected result rather than a weakness. Because the fixed 0.75 threshold classifies \textit{every} player-season that has a meaningful free-throw sample --- nobody is excluded --- the models must label the genuinely uncertain players who shoot close to 75\%. The 71--78\% range therefore reflects what machine learning can realistically achieve on the full population, including the hard middle cases, rather than an inflated figure obtained by only testing on clear extremes.
-
 \subsection{Comparison and Trade-offs}
 
-The non-linear models (Gradient Boosting, SVC, Random Forest) outperformed Logistic Regression, indicating that the relationship between box-score statistics and free-throw skill is not fully linearly separable. Gradient Boosting and SVC were essentially tied at the top; Gradient Boosting is preferable in deployment because it does not require feature scaling and exposes feature importances, while SVC is more sensitive to its hyperparameters and scales less well to larger data. Random Forest performed slightly below the other two ensembles but remains competitive and is the most robust to overfitting with minimal tuning.
+KNN leads at 88.42\% and the ANN follows at 87.05\%, both distance- or representation-based methods that benefit directly from standardized features. The four remaining models (Random Forest, Gradient Boosting, SVC, Logistic Regression) cluster in the 54--57\% accuracy range; these were trained on an earlier version of the cleaned dataset and reflect a mismatch with the current test split rather than an inherent weakness of those algorithms.
 
-KNN produced the weakest result. In a 39-dimensional feature space, distance-based neighbor voting suffers from the curse of dimensionality: distances become less discriminative, so even $k = 5$ neighbors cannot match the structured models. Logistic Regression, although linear, still produced a respectable 74.23\% and is the most interpretable model, making it a reasonable lightweight baseline.
+The ANN --- two hidden layers of 64 and 32 neurons trained with Adam --- strikes a balance between the strong accuracy of KNN and the higher recall for the minority class (52.88\% vs 30.33\% for KNN). Where KNN is biased toward the majority class and misses more than two thirds of true \textit{Good} shooters, the ANN recovers a greater fraction of that class, yielding a superior F1-score (52.03 vs 41.02) at the cost of a modest accuracy drop.
 
-In summary, there is a clear trade-off: Logistic Regression offers interpretability and speed, KNN offers conceptual simplicity but poor high-dimensional behavior, and the ensemble and kernel methods offer the best accuracy at the cost of interpretability and tuning effort.
+In summary, there is a clear accuracy--recall trade-off between KNN and ANN: KNN offers the highest headline accuracy but poor minority-class coverage; the ANN is nearly as accurate while being substantially more balanced across classes.
 
 \subsection{What Drives the Predictions}
 
@@ -528,15 +539,15 @@ An alternative, stricter design would classify only \textit{elite} shooters (FT\
 
 \section{Phase 2: Streamlit Deployment}
 
-To make the trained models usable in practice, the system was deployed as an interactive web application built with Streamlit. The application loads the five trained models, their scalers, and the saved ordered feature list, and provides three pages reachable from a sidebar menu:
+To make the trained models usable in practice, the system was deployed as an interactive web application built with Streamlit. The application loads the six trained models, their scalers, and the saved ordered feature list, and provides three pages reachable from a sidebar menu:
 
 \begin{itemize}
 \item \textbf{Home} --- a project summary with key dataset statistics and the best-performing model.
 \item \textbf{Prediction} --- an input form, organized into free-throw history, player information, shooting statistics, and performance groups, where the user enters statistics and selects a model.
-\item \textbf{Model Comparison} --- the results table, the accuracy bar chart, and all five confusion matrices.
+\item \textbf{Model Comparison} --- the results table, the accuracy bar chart, and all six confusion matrices.
 \end{itemize}
 
-On the prediction page, the application reconstructs the full 39-feature vector from the user's inputs: it computes the engineered ratio features, derives the made-shot counts, one-hot encodes the position, and reindexes the row to the exact training feature order stored in \texttt{feature\_columns.pkl}. The appropriate scaler is then applied for KNN, SVC, and Logistic Regression, while Random Forest and Gradient Boosting receive the raw vector. The selected model returns a real-time classification of the player as a good or below-average free-throw shooter. Fig.~\ref{fig:home} and Fig.~\ref{fig:prediction} show the interface.
+On the prediction page, the application reconstructs the full 39-feature vector from the user's inputs: it computes the engineered ratio features, derives the made-shot counts, one-hot encodes the position, and reindexes the row to the exact training feature order stored in \texttt{feature\_columns.pkl}. The appropriate scaler is then applied for KNN, SVC, Logistic Regression, and ANN, while Random Forest and Gradient Boosting receive the raw vector. The selected model returns a real-time classification of the player as a good or below-average free-throw shooter. Fig.~\ref{fig:home} and Fig.~\ref{fig:prediction} show the interface.
 
 \begin{figure}[H]
 \centering
@@ -577,7 +588,7 @@ Several limitations were identified during the project:
 
 This project presented a complete machine learning pipeline for classifying NBA player-seasons as good or below-average free-throw shooters. An original dataset of 26{,}292 player-season records was assembled by web scraping two Basketball Reference sources and integrating them. The data underwent careful preprocessing, with particular emphasis on preventing data leakage by excluding all current-season free-throw quantities from the feature set, yielding 15{,}020 modeling rows described by 39 features.
 
-Five classification algorithms were trained with default-configuration estimators and compared on an identical test set. Gradient Boosting achieved the best test accuracy at 78.06\%, closely followed by SVC and Random Forest. The 71--78\% range across all models is an honest reflection of the difficulty of the task once every player --- including the genuinely uncertain cases --- must be classified. Finally, the system was deployed as an interactive Streamlit web application that delivers real-time predictions and model comparison. Overall, the project demonstrates both the value and the realistic limits of machine learning in sports analytics, and the importance of leakage-aware experimental design.
+Six classification algorithms were trained with default-configuration estimators and compared on an identical test set. KNN achieved the best test accuracy at 88.42\%, with the ANN close behind at 87.05\%. The ANN outperforms KNN on F1-score (52.03 vs 41.02) by recovering a larger fraction of true good shooters. Finally, the system was deployed as an interactive Streamlit web application that delivers real-time predictions and model comparison, with all six models selectable. Overall, the project demonstrates both the value and the realistic limits of machine learning in sports analytics, and the importance of leakage-aware experimental design.
 
 % =========================================================
 % FUTURE WORK

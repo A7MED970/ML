@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import joblib
 
 # =====================================
@@ -55,19 +56,25 @@ h1, h2, h3 {
 # LOAD MODELS
 # =====================================
 
-logistic_model = joblib.load("logistic.pkl")
-knn_model = joblib.load("knn.pkl")
-svc_model = joblib.load("svc.pkl")
-rf_model = joblib.load("rf.pkl")
-gb_model = joblib.load("gb.pkl")
+logistic_model = joblib.load("models/logistic.pkl")
+knn_model      = joblib.load("models/knn.pkl")
+svc_model      = joblib.load("models/svc.pkl")
+rf_model       = joblib.load("models/rf.pkl")
+gb_model       = joblib.load("models/gb.pkl")
 
 # =====================================
-# LOAD SCALERS
+# LOAD SCALERS (only for KNN, SVC, LR)
 # =====================================
 
-logistic_scaler = joblib.load("logistic_scaler.pkl")
-knn_scaler = joblib.load("knn_scaler.pkl")
-svc_scaler = joblib.load("svc_scaler.pkl")
+logistic_scaler = joblib.load("models/logistic_scaler.pkl")
+knn_scaler      = joblib.load("models/knn_scaler.pkl")
+svc_scaler      = joblib.load("models/svc_scaler.pkl")
+
+# =====================================
+# LOAD FEATURE COLUMNS
+# =====================================
+
+feature_columns = joblib.load("models/feature_columns.pkl")
 
 # =====================================
 # SIDEBAR
@@ -93,9 +100,10 @@ if page == "Home":
     st.title("🏀 NBA Free Throw Prediction System")
 
     st.write("""
-    Predict whether an NBA player performs
-    above or below the league-average free throw percentage
-    using machine learning and basketball statistics.
+    Predict whether an NBA player is a **good** (FT% >= 75%) or **below-average**
+    (FT% < 75%) free-throw shooter using machine learning and basketball statistics.
+    The model is trained on 15,020 player-seasons (1975-2025) with no exclusions —
+    every player who attempted at least one free throw per game receives a prediction.
     """)
 
     st.write("---")
@@ -103,17 +111,17 @@ if page == "Home":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric("Dataset Rows", "26,292")
+        st.metric("Dataset Rows", "15,020")
 
     with col2:
-        st.metric("Features Used", "25")
+        st.metric("Features Used", "39")
 
     with col3:
         st.metric("ML Models", "5")
 
     st.write("---")
 
-    st.success("🏆 Best Model: Logistic Regression (90.72% Accuracy)")
+    st.success("🏆 Best Model: Gradient Boosting (78.06% Accuracy)")
 
     st.write("---")
 
@@ -148,9 +156,9 @@ elif page == "Prediction":
     st.title("🏀 NBA Player Analyzer")
 
     st.write("""
-    Enter basketball statistics below to predict whether
-    the player performs above or below the NBA league-average
-    free throw percentage.
+    Enter basketball statistics below to predict whether the player is a
+    **good free-throw shooter** (FT% >= 75%) or a **below-average free-throw shooter**
+    (FT% < 75%).
     """)
 
     st.write("---")
@@ -162,9 +170,28 @@ elif page == "Prediction":
             "KNN",
             "SVC",
             "Random Forest",
-            "Gradient Boosting"
+            "Gradient Boosting",
         ]
     )
+
+    st.write("---")
+
+    # =====================================
+    # FREE-THROW HISTORY
+    # =====================================
+
+    st.subheader("📊 Free-Throw History")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        career_ft_pct = st.slider("Career FT% (prior seasons)", 0.0, 1.0, 0.75, step=0.01)
+
+    with col2:
+        prev_ft_pct = st.slider("Previous Season FT%", 0.0, 1.0, 0.75, step=0.01)
+
+    with col3:
+        career_seasons = st.slider("Career Seasons Played", 0, 20, 3)
 
     st.write("---")
 
@@ -177,13 +204,17 @@ elif page == "Prediction":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        age = st.slider("Age", 18, 45, 25)
+        age    = st.slider("Age", 18, 45, 25)
+        pos    = st.selectbox("Position", ["PG", "SG", "SF", "PF", "C"])
 
     with col2:
-        games = st.slider("Games Played", 0, 82, 50)
+        games   = st.slider("Games Played", 0, 82, 50)
+        gs      = st.slider("Games Started", 0, 82, 30)
 
     with col3:
-        minutes = st.slider("Minutes Played", 0.0, 48.0, 20.0)
+        minutes = st.slider("Minutes Per Game", 0.0, 48.0, 20.0)
+        height  = st.slider("Height (inches)", 66, 90, 78)
+        weight  = st.slider("Weight (lbs)", 150, 320, 215)
 
     st.write("---")
 
@@ -193,53 +224,20 @@ elif page == "Prediction":
 
     st.subheader("🎯 Shooting Statistics")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-
-        fg_percent = st.slider(
-            "Field Goal Percentage",
-            0.0,
-            1.0,
-            0.45
-        )
-
-        threep_percent = st.slider(
-            "3-Point Percentage",
-            0.0,
-            1.0,
-            0.35
-        )
-
-        twop_percent = st.slider(
-            "2-Point Percentage",
-            0.0,
-            1.0,
-            0.50
-        )
+        fg_pct  = st.slider("Field Goal %", 0.0, 1.0, 0.45)
+        fga     = st.slider("FG Attempts per game", 0.0, 30.0, 10.0)
+        threep_pct = st.slider("3-Point %", 0.0, 1.0, 0.35)
 
     with col2:
+        twop_pct = st.slider("2-Point %", 0.0, 1.0, 0.50)
+        efg      = st.slider("Effective FG %", 0.0, 1.0, 0.50)
+        threep_a = st.slider("3PA per game", 0.0, 15.0, 4.0)
 
-        efg = st.slider(
-            "Effective FG Percentage",
-            0.0,
-            1.0,
-            0.50
-        )
-
-        ft_percent = st.slider(
-            "Free Throw Percentage",
-            0.0,
-            1.0,
-            0.75
-        )
-
-        ft_attempts = st.slider(
-            "Free Throw Attempts",
-            0.0,
-            15.0,
-            4.0
-        )
+    with col3:
+        twop_a   = st.slider("2PA per game", 0.0, 25.0, 6.0)
 
     st.write("---")
 
@@ -249,93 +247,103 @@ elif page == "Prediction":
 
     st.subheader("📊 Player Performance")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-
-        pts = st.slider(
-            "Points Per Game",
-            0.0,
-            40.0,
-            12.0
-        )
-
-        ast = st.slider(
-            "Assists",
-            0.0,
-            15.0,
-            3.0
-        )
+        pts = st.slider("Points Per Game", 0.0, 40.0, 12.0)
+        ast = st.slider("Assists Per Game", 0.0, 15.0, 3.0)
+        tov = st.slider("Turnovers Per Game", 0.0, 10.0, 2.0)
 
     with col2:
+        trb = st.slider("Total Rebounds Per Game", 0.0, 20.0, 5.0)
+        orb = st.slider("Offensive Rebounds", 0.0, 8.0, 1.0)
+        drb = st.slider("Defensive Rebounds", 0.0, 15.0, 4.0)
 
-        trb = st.slider(
-            "Rebounds",
-            0.0,
-            20.0,
-            5.0
-        )
-
-        tov = st.slider(
-            "Turnovers",
-            0.0,
-            10.0,
-            2.0
-        )
+    with col3:
+        stl = st.slider("Steals Per Game", 0.0, 5.0, 1.0)
+        blk = st.slider("Blocks Per Game", 0.0, 5.0, 0.5)
+        pf  = st.slider("Personal Fouls", 0.0, 6.0, 2.0)
 
     st.write("---")
 
     # =====================================
-    # INPUT DATA
+    # BUILD INPUT ROW AND ENGINEER FEATURES
     # =====================================
 
-    input_data = pd.DataFrame({
+    # Compute derived fields
+    fg       = fg_pct * fga
+    threep   = threep_pct * threep_a
+    twop     = twop_pct * twop_a
 
-        'Age': [age],
-        'G': [games],
-        'GS': [40],
-        'MP': [minutes],
+    # Engineered ratios - denominator 0 -> ratio 0 (matches notebook 02)
+    ast_to_tov     = ast / tov if tov > 0 else 0.0
+    pts_per_fga    = pts / fga if fga > 0 else 0.0
+    threep_rate    = threep_a / fga if fga > 0 else 0.0
+    reb_per_min    = trb / minutes if minutes > 0 else 0.0
+    stocks_per_min = (stl + blk) / minutes if minutes > 0 else 0.0
+    scoring_load   = fga / minutes if minutes > 0 else 0.0
 
-        'FG': [5.0],
-        'FGA': [10.0],
-        'FG%': [fg_percent],
+    # One-hot encode position
+    pos_C  = 1 if pos == 'C'  else 0
+    pos_PF = 1 if pos == 'PF' else 0
+    pos_PG = 1 if pos == 'PG' else 0
+    pos_SF = 1 if pos == 'SF' else 0
+    pos_SG = 1 if pos == 'SG' else 0
 
-        'FT': [ft_percent * ft_attempts],
-        'FTA': [ft_attempts],
+    raw_input = {
+        'Age':            age,
+        'G':              games,
+        'GS':             gs,
+        'MP':             minutes,
+        'FG':             fg,
+        'FGA':            fga,
+        'FG%':            fg_pct,
+        'ORB':            orb,
+        'DRB':            drb,
+        'TRB':            trb,
+        'AST':            ast,
+        'STL':            stl,
+        'BLK':            blk,
+        'TOV':            tov,
+        'PF':             pf,
+        'PTS':            pts,
+        '3P':             threep,
+        '3PA':            threep_a,
+        '3P%':            threep_pct,
+        '2P':             twop,
+        '2PA':            twop_a,
+        '2P%':            twop_pct,
+        'eFG%':           efg,
+        'career_ft_pct':  career_ft_pct,
+        'prev_ft_pct':    prev_ft_pct,
+        'career_seasons': career_seasons,
+        'height_in':      height,
+        'weight_lb':      weight,
+        'ast_to_tov':     ast_to_tov,
+        'pts_per_fga':    pts_per_fga,
+        'threep_rate':    threep_rate,
+        'reb_per_min':    reb_per_min,
+        'stocks_per_min': stocks_per_min,
+        'scoring_load':   scoring_load,
+        'Pos_C':          pos_C,
+        'Pos_PF':         pos_PF,
+        'Pos_PG':         pos_PG,
+        'Pos_SF':         pos_SF,
+        'Pos_SG':         pos_SG,
+    }
 
-        'ORB': [1.0],
-        'DRB': [4.0],
-        'TRB': [trb],
-
-        'AST': [ast],
-        'STL': [1.0],
-        'BLK': [0.5],
-
-        'TOV': [tov],
-        'PF': [2.0],
-
-        'PTS': [pts],
-
-        '3P': [1.0],
-        '3PA': [4.0],
-        '3P%': [threep_percent],
-
-        '2P': [4.0],
-        '2PA': [8.0],
-        '2P%': [twop_percent],
-
-        'eFG%': [efg]
-    })
+    # Build dataframe and reindex to exactly match training column order
+    input_df = pd.DataFrame([raw_input])
+    input_df = input_df.reindex(columns=feature_columns, fill_value=0)
 
     # =====================================
-    # APPLY SCALERS
+    # APPLY SCALERS WHERE NEEDED
     # =====================================
 
-    logistic_scaled = logistic_scaler.transform(input_data)
-
-    knn_scaled = knn_scaler.transform(input_data)
-
-    svc_scaled = svc_scaler.transform(input_data)
+    input_knn      = knn_scaler.transform(input_df)
+    input_svc      = svc_scaler.transform(input_df)
+    input_logistic = logistic_scaler.transform(input_df)
+    # RF and GB receive raw (unscaled) input
 
     # =====================================
     # PREDICTION
@@ -344,24 +352,19 @@ elif page == "Prediction":
     if st.button("🏀 Analyze Player"):
 
         if model_choice == "Logistic Regression":
-
-            prediction = logistic_model.predict(logistic_scaled)
+            prediction = logistic_model.predict(input_logistic)
 
         elif model_choice == "KNN":
-
-            prediction = knn_model.predict(knn_scaled)
+            prediction = knn_model.predict(input_knn)
 
         elif model_choice == "SVC":
-
-            prediction = svc_model.predict(svc_scaled)
+            prediction = svc_model.predict(input_svc)
 
         elif model_choice == "Random Forest":
+            prediction = rf_model.predict(input_df)
 
-            prediction = rf_model.predict(logistic_scaled)
-
-        else:
-
-            prediction = gb_model.predict(logistic_scaled)
+        else:  # Gradient Boosting
+            prediction = gb_model.predict(input_df)
 
         st.write("---")
 
@@ -378,7 +381,7 @@ elif page == "Prediction":
                     color:white;
                     font-weight:bold;
                 ">
-                🏀 ABOVE LEAGUE-AVERAGE FREE THROW SHOOTER
+                🏀 GOOD FREE-THROW SHOOTER (predicted FT% >= 75%)
                 </div>
                 ''',
                 unsafe_allow_html=True
@@ -397,7 +400,7 @@ elif page == "Prediction":
                     color:white;
                     font-weight:bold;
                 ">
-                🏀 BELOW LEAGUE-AVERAGE FREE THROW SHOOTER
+                🏀 BELOW-AVERAGE FREE-THROW SHOOTER (predicted FT% < 75%)
                 </div>
                 ''',
                 unsafe_allow_html=True
@@ -413,20 +416,16 @@ elif page == "Model Comparison":
 
     data = {
         "Model": [
-            "Logistic Regression",
-            "KNN",
+            "Gradient Boosting",
             "SVC",
             "Random Forest",
-            "Gradient Boosting"
+            "Logistic Regression",
+            "KNN",
         ],
-
-        "Accuracy (%)": [
-            90.72,
-            71.48,
-            82.75,
-            77.16,
-            85.17
-        ]
+        "Accuracy (%)":  [78.06, 77.23, 76.96, 74.23, 71.64],
+        "Precision (%)": [79.65, 78.31, 79.09, 75.25, 73.35],
+        "Recall (%)":    [79.70, 79.95, 77.91, 77.85, 74.52],
+        "F1-Score (%)":  [79.68, 79.12, 78.50, 76.53, 73.93],
     }
 
     df = pd.DataFrame(data)
@@ -437,7 +436,7 @@ elif page == "Model Comparison":
 
     st.subheader("📈 Accuracy Comparison")
 
-    st.bar_chart(df.set_index("Model"))
+    st.bar_chart(df.set_index("Model")[["Accuracy (%)"]])
 
     st.write("---")
 
@@ -446,10 +445,10 @@ elif page == "Model Comparison":
     col1, col2 = st.columns(2)
 
     with col1:
-        st.image("images/lr_confusion_matrix.png", caption="Logistic Regression")
-        st.image("images/knn_confusion_matrix.png", caption="KNN")
-        st.image("images/rf_confusion_matrix.png", caption="Random Forest")
+        st.image("images/lr_confusion_matrix.png",   caption="Logistic Regression")
+        st.image("images/knn_confusion_matrix.png",  caption="KNN")
+        st.image("images/rf_confusion_matrix.png",   caption="Random Forest")
 
     with col2:
-        st.image("images/svc_confusion_matrix.png", caption="SVC")
-        st.image("images/gb_confusion_matrix.png", caption="Gradient Boosting")
+        st.image("images/svc_confusion_matrix.png",  caption="SVC")
+        st.image("images/gb_confusion_matrix.png",   caption="Gradient Boosting")

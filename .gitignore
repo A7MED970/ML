@@ -10,15 +10,9 @@ env/
 .ipynb_checkpoints/
 
 
-*.json
-
-
 *.joblib
 *.h5
 *.model
-
-models/
-saved_models/
 
 *.log
 *.tmp

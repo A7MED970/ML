@@ -9,11 +9,10 @@ env/
 
 .ipynb_checkpoints/
 
-*.csv
-*.xlsx
+
 *.json
 
-*.pkl
+
 *.joblib
 *.h5
 *.model

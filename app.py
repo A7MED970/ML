@@ -137,6 +137,14 @@ if page == "Home":
     - Gradient Boosting
     - Artificial Neural Network (ANN)
     """)
+    st.write("---")
+
+    st.subheader("Course Instructors")
+
+    st.write("""
+    - DR. Ensaf Hussein
+    - ENG. Salma Hegazy
+    """)
 
     st.write("---")
 
